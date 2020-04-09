@@ -43,8 +43,6 @@ def loadData(basePath, classIDs):
     LISAdata = []
     
     for i, row in enumerate(rows):
-        if i>5000:
-            break
         if i%1000 == 0:
             print("processed " + str(i))
         LISAdata.append(LISAImage(row, basePath, classIDs))

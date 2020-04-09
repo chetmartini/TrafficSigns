@@ -50,8 +50,6 @@ def loadDataset(basePath, dataset):
     GTSRBdata = []
     
     for i, row in enumerate(rows):
-        if i>5000:
-            break
         if i%1000 == 0:
             print("processed " + str(i))
         GTSRBdata.append(GTSRBImage(row, basePath))

@@ -129,3 +129,4 @@ print("Evaluating")
 predictions = model.predict(data.TestImages, batch_size=BS)
 print(classification_report(data.TestClasses.argmax(axis=1),
 	predictions.argmax(axis=1), target_names=labelNames.keys()))
+model.save("model.h5")
