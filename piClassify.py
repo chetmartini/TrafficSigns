@@ -18,19 +18,21 @@ def getLabels(csvFileName):
 
 def loadPic(imageFileName):
     pic = io.imread(imageFileName)
-    pic = transform.resize(pic,(32,32))
-    pic = exposure.equalize_adapthist(pic)
-    #plt.figure(0)
-    #plt.imshow(pic)
     return pic
 
 def makePrediction(model,pic):
+    pic = transform.resize(pic,(32,32))
+    pic = exposure.equalize_adapthist(pic)
     picInput = np.asarray([pic])
     return model.predict(picInput)
 
-labelNames = getLabels("GTSRBsignnames.csv")
-model = load_model("model.h5")
-pic = loadPic("gtsrbexample.png")
-prediction = makePrediction(model,pic)
-value = np.where(prediction == 1)[1][0]
-print(list(labelNames.keys())[value])
+def getAnnotationText(pic):
+    labelNames = getLabels("GTSRBsignnames.csv")
+    model = load_model("model.h5")
+    prediction = makePrediction(model,pic)
+    value = np.where(prediction == 1)[1][0]
+    return list(labelNames.keys())[value]
+
+if __name__ == "__main__":
+    pic = loadPic("gtsrbexample.png")
+    print(getAnnotationText(pic))
