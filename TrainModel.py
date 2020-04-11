@@ -22,7 +22,8 @@ from gtsrb import GTSRBData
 from lisa import LISAData
 import cv2
 
-
+#parse csv file that associates sign names with their classID
+#returns a dictionary
 def getLabels(csvFileName, whitelist):
     labelLines = open(csvFileName).read().strip().split("\n")[1:]
     labelNames = {}
@@ -43,6 +44,8 @@ def LoadLISA():
     return data, labelNames
 
 def LoadGTSRB():
+    #only use a subset of images for simplicity. these numbers are the 
+    #classIDs of the signs as specified in the GTSRBsignnames.csv file
     whitelist = [0,9,10,34,37,32,15]
     print("loading data from GTSRB database")
     labelNames = getLabels("GTSRBsignnames.csv", whitelist)
@@ -50,7 +53,8 @@ def LoadGTSRB():
     data = GTSRBData(dataDirectory, whitelist)
     return data, labelNames
 
-def MakeModel(classOutputs):
+#creates a sequential CNN model using the Keras library
+def MakeModel(numOutputs):
     #dropout: https://machinelearningmastery.com/dropout-regularization-deep-learning-models-keras/
         # http://jmlr.org/papers/volume15/srivastava14a/srivastava14a.pdf
     #batch normalization: https://machinelearningmastery.com/how-to-accelerate-learning-of-deep-neural-networks-with-batch-normalization/
@@ -70,11 +74,6 @@ def MakeModel(classOutputs):
     model.add(Conv2D(16, (3, 3), activation="relu"))
     model.add(BatchNormalization())
     model.add(MaxPooling2D(pool_size=(2, 2)))
-    
-    #convolutional + pooling layer
-    model.add(Conv2D(32, (3, 3), activation="relu"))
-    model.add(BatchNormalization())
-    model.add(MaxPooling2D(pool_size=(2, 2)))
 
     #fully-connected layer
     model.add(Flatten())
@@ -82,14 +81,8 @@ def MakeModel(classOutputs):
     model.add(BatchNormalization())
     model.add(Dropout(0.5))
          
-    #fully-connected layer
-    model.add(Flatten())
-    model.add(Dense(128, activation="relu"))
-    model.add(BatchNormalization())
-    model.add(Dropout(0.5))
-
     #fully-connected output layer
-    model.add(Dense(classOutputs))
+    model.add(Dense(numOutputs))
     model.add(Activation("softmax"))
 
 
@@ -103,11 +96,8 @@ data, labelNames = LoadGTSRB()
 
 model = MakeModel(len(labelNames))
 
-# initialize the number of epochs to train for, base learning rate,
-# and batch size
-NUM_EPOCHS = 20
-INIT_LR = 1e-3
-BS = 64
+numEpochs = 20
+batchSize = 64
 
 # construct the image generator for data augmentation
 aug = ImageDataGenerator(
@@ -123,16 +113,18 @@ aug = ImageDataGenerator(
 # train the network
 print("Training")
 H = model.fit_generator(
-	aug.flow(data.TrainImages, data.TrainClasses, batch_size=BS),
+	aug.flow(data.TrainImages, data.TrainClasses, batch_size=batchSize),
 	validation_data=(data.TestImages, data.TestClasses),
-	steps_per_epoch=data.TestImages.shape[0] // BS,
-	epochs=NUM_EPOCHS,
+	steps_per_epoch=data.TestImages.shape[0] // batchSize,
+	epochs=numEpochs,
 	class_weight=data.classWeight,
 	verbose=1)
 
 # evaluate the network
 print("Evaluating")
-predictions = model.predict(data.TestImages, batch_size=BS)
+predictions = model.predict(data.TestImages, batch_size=batchSize)
 print(classification_report(data.TestClasses.argmax(axis=1),
                             predictions.argmax(axis=1), target_names=labelNames.keys()))
+
+print("saving model to model.h5")
 model.save("model.h5")

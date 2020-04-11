@@ -1,0 +1,41 @@
+CNN design
+	input is 32x32 rgb image, with values scaled to between [0 1]
+	two sets of a convolutional layer followed by a pooling layer
+		[8] describes this design i think
+	one fully connected layer
+	output layer
+		numer of outputs equals number of classes
+	use "relu" activation function
+	describe choice of optimizer function
+	describe choice of loss function
+	
+CNN training
+	load data from GTSRB - split up into training and validation (test) data
+		perfomred in gtsrb.py function
+		preprocess each image done in "processImage" function
+		example output of each step found in PreProcessingExample directory
+	use ImageDataGenerator to make random alterations to the training data
+		example outputs of the image generator found in ImageDataGeneratorExamples directory
+	describe batch size parameter
+	describe number of epochs parameter
+	training time vastly accelerated by use of graphics card
+	classification report (output of TrainModel.py)
+	 
+Detection + classification
+	Hough circle detection
+	false detection filtering
+	use CNN model to classify detected signs
+	detectexampleoutput.png / detectexampleinput.png
+
+Raspberry PI performance
+	describe how images or camera feed are obtained using the raspberry pi camera
+	compare performance on raspberry pi vs on a computer with a graphics card
+	describe possible performance improvements
+		implement tracking across multiple frames so that the classification only needs to be performed when the sign is initially detected
+		simplify CNN model or use other types of classification methods
+	describe possible detection improvements
+	describe possible false positive filtering improvements
+		
+
+	
+
