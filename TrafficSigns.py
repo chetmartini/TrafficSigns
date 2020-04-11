@@ -16,18 +16,23 @@ from sklearn.metrics import classification_report
 import matplotlib.pyplot as plt
 import numpy as np
 import os
+from skimage import io
+from skimage import transform
 from gtsrb import GTSRBData
 from lisa import LISAData
+import cv2
 
 
-def getLabels(csvFileName):
+def getLabels(csvFileName, whitelist):
     labelLines = open(csvFileName).read().strip().split("\n")[1:]
     labelNames = {}
     for labelLine in labelLines:
         labelArgs = labelLine.split(",")
         labelName = labelArgs[1]
-        labelID = labelArgs[0]
-        labelNames[labelName] = labelID  
+        labelID = int(labelArgs[0])
+        if labelID in whitelist:    
+            labelNames[labelName] = whitelist.index(labelID) 
+    labelNames = {k: v for k, v in sorted(labelNames.items(), key=lambda item: item[1])}
     return labelNames
         
 def LoadLISA():
@@ -38,10 +43,11 @@ def LoadLISA():
     return data, labelNames
 
 def LoadGTSRB():
+    whitelist = [0,9,10,34,37,32,15]
     print("loading data from GTSRB database")
-    labelNames = getLabels("GTSRBsignnames.csv")
+    labelNames = getLabels("GTSRBsignnames.csv", whitelist)
     dataDirectory = os.path.abspath('gtsrb-german-traffic-sign')
-    data = GTSRBData(dataDirectory)
+    data = GTSRBData(dataDirectory, whitelist)
     return data, labelNames
 
 def MakeModel(classOutputs):
@@ -74,13 +80,13 @@ def MakeModel(classOutputs):
     model.add(Flatten())
     model.add(Dense(128, activation="relu"))
     model.add(BatchNormalization())
-    #model.add(Dropout(0.5))
+    model.add(Dropout(0.5))
          
     #fully-connected layer
     model.add(Flatten())
     model.add(Dense(128, activation="relu"))
     model.add(BatchNormalization())
-    #model.add(Dropout(0.5))
+    model.add(Dropout(0.5))
 
     #fully-connected output layer
     model.add(Dense(classOutputs))
@@ -128,5 +134,5 @@ H = model.fit_generator(
 print("Evaluating")
 predictions = model.predict(data.TestImages, batch_size=BS)
 print(classification_report(data.TestClasses.argmax(axis=1),
-	predictions.argmax(axis=1), target_names=labelNames.keys()))
+                            predictions.argmax(axis=1), target_names=labelNames.keys()))
 model.save("model.h5")

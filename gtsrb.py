@@ -9,12 +9,13 @@ from skimage import exposure
 from skimage import io
 import numpy as np
 from tensorflow.keras.utils import to_categorical
+import cv2
 import os
         
 class GTSRBData:
-    def __init__(self, basePath):
-        (self.TrainImages, self.TrainClasses) = loadDataset(basePath, "Train")
-        (self.TestImages, self.TestClasses) = loadDataset(basePath, "Test")
+    def __init__(self, basePath, whitelist):
+        (self.TrainImages, self.TrainClasses) = loadDataset(basePath, "Train", whitelist)
+        (self.TestImages, self.TestClasses) = loadDataset(basePath, "Test", whitelist)
         self.classTotals = self.TrainClasses.sum(axis=0)
         self.classWeight = self.classTotals.max() / self.classTotals
 
@@ -24,26 +25,25 @@ class GTSRBImage:
     def processImage(self):
         pic = io.imread(self.imageFileName)
         pic = pic[self.roiX1:self.roiX2, self.roiY1:self.roiY2]
+        pic = np.ndarray.astype(pic, float)
         pic = transform.resize(pic,(32,32))
-        pic = exposure.equalize_adapthist(pic)
+        #pic = exposure.equalize_adapthist(pic)
         return pic
     
-    def __init__(self,CSVLine, basePath):
-        args = CSVLine.strip().split(",")
+    def __init__(self,args, basePath, whitelist):
         self.width = int(args[0])
         self.height = int(args[1])
         self.roiX1 = int(args[2])
         self.roiY1 = int(args[3])
         self.roiX2 = int(args[4])
         self.roiY2 = int(args[5])
-        self.classID = int(args[6])
+        self.classID = whitelist.index(int(args[6]))
         self.imageFileName = os.path.join(basePath, args[7])
         self.image = self.processImage()
                 
 
 
-def loadDataset(basePath, dataset):
-    
+def loadDataset(basePath, dataset, whitelist):
     annotationFile = os.path.join(basePath, dataset + '.csv' )
     rows = open(annotationFile).read().strip().split("\n")[1:]
     np.random.shuffle(rows)
@@ -52,7 +52,11 @@ def loadDataset(basePath, dataset):
     for i, row in enumerate(rows):
         if i%1000 == 0:
             print("processed " + str(i))
-        GTSRBdata.append(GTSRBImage(row, basePath))
+        args = row.strip().split(",")
+        if int(args[6]) in whitelist:    
+            GTSRBdata.append(GTSRBImage(args, basePath, whitelist))
+        #else:
+            #print("discarded %s"%args[6])
 
     images = np.array([datum.image for datum in GTSRBdata])
     # scale data to the range of [0, 1]
