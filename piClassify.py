@@ -25,9 +25,17 @@ def loadPic(imageFileName):
 
 def makePrediction(model,pic):
     pic = np.ndarray.astype(pic, float)
+    #resize the image to 32x32, since thats the size of the input
+    #to the CNN
     pic = transform.resize(pic,(32,32))
-    pic = pic.astype("float32") / 255.0
-    #pic = exposure.equalize_adapthist(pic)
+    #scale the image to the range [0 1]
+    pic = pic / 255.0
+    pic = np.clip(pic,0,1)
+    #contrast limited adaptive histogram equalization (CLAHE)
+    #https://scikit-image.org/docs/dev/api/skimage.exposure.html#equalize-adapthist
+    pic = exposure.equalize_adapthist(pic)
+    #the resulting picture should be multiplied by 255 if it is to be 
+    #saved to a png
     picInput = np.asarray([pic])
     return model.predict(picInput)
 
@@ -36,13 +44,15 @@ def getAnnotationText(pic):
     labelNames = getLabels("GTSRBsignnames.csv", whitelist)
     model = load_model("model.h5")
     prediction = makePrediction(model,pic)
+    #prediction will be an array of floats the size of the output of the CNN
+    #the max value will determine its prediction
     maxindex = np.argmax(prediction)
     maxval = prediction[0][maxindex]
     label = list(labelNames.keys())[list(labelNames.values()).index(maxindex)]
     return "%s (%3.2f)"%(label, maxval)
 
 if __name__ == "__main__":
-    pic = loadPic("x.png")
-    cv2.imwrite("x2.png",pic)
+    #add png file path here
+    pic = loadPic("ImageDataGeneratorExamples/15.png")
     label = getAnnotationText(pic)
     print(label)
